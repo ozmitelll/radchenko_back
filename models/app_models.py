@@ -43,6 +43,8 @@ class OrderModel(Model):
     is_active = fields.BooleanField(default=False)
     unit = fields.CharField(max_length=50)
     time_of_execution = fields.DatetimeField()
+    time_of_start = fields.DatetimeField(null=True)
+    time_of_end = fields.DatetimeField(null=True)
 
     class Meta:
         table = "orders"
@@ -64,6 +66,10 @@ class LoginDTO(BaseModel):
     email: str
     password: str
 
+class ConfirmOrder(BaseModel):
+    status: bool
+    date: datetime
+    total_cost: float
 class OrderDTO(BaseModel):
     number_order: str
     technics: List[object]

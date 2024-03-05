@@ -1,11 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import unquote
 
 from fastapi import APIRouter, Depends, Query
 from tortoise.exceptions import DoesNotExist
 
 from api.user.views import get_current_user
-from models.app_models import OrderModel, User_Pydantic, OrderDTO, User
+from models.app_models import OrderModel, User_Pydantic, OrderDTO, User, ConfirmOrder
 
 router = APIRouter()
 
@@ -44,8 +44,48 @@ async def get_orders(
 async def get_order(current_user=Depends(get_current_user),
                     order_id: int = None):
     try:
+        # import ipdb;
+        # ipdb.set_trace()
         order = await OrderModel.get(id=order_id)
-        return {"order": order.number_order}
+        if order.time_of_end is not None:
+            order.time_of_end += timedelta(hours=2)
+        return {"order": order}
+    except DoesNotExist:
+        return {"order": "Not found!"}
+
+@router.post('/sorted')
+async def get_orders_sorted():
+    try:
+        orders = await OrderModel.filter(is_active=True).all()
+        return {"orders": orders}
+    except DoesNotExist:
+        return {"orders": "Not found!"}
+
+
+@router.post('/money')
+async def get_moneys():
+    try:
+        moneys = 0
+        orders = await OrderModel.filter(is_active=True).all()
+        for order in orders:
+            moneys += order.total_cost
+        return {"moneys": moneys}
+    except DoesNotExist:
+        return {"orders": "Not found!"}
+
+@router.put('/{order_id}')
+async def update_order(current_user=Depends(get_current_user),
+                       order_id: int = None,
+                       confirm_order: ConfirmOrder = None):
+    try:
+
+        order = await OrderModel.get(id=order_id)
+        order.is_active = confirm_order.status
+        order.total_cost = confirm_order.total_cost
+        order.time_of_start = datetime.now()
+        order.time_of_end = confirm_order.date
+        await order.save()
+        return {"order": "change successfully"}
     except DoesNotExist:
         return {"order": "Not found!"}
 
